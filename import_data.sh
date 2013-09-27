@@ -19,13 +19,17 @@ if [ ! -e arctic_latest.osm.pbf ]; then
     md5sum -c planet.md5 || exit 1
     # Extracting the arctic from the planet takes ~30min with osmconvert
     # and results in a ~600MB file.
-    ~/src/osmconvert $planet -b=$BBOX --complex-ways arctic_latest.osm.pbf
+    echo -n "Creating arctic extract... "
+    osmconvert $planet -b=$BBOX --complex-ways -o=arctic_latest.osm.pbf
+    echo "done."
 fi
 
 # Updating the arctic extract to the latest OSM data with osmupdate.
 # This should take only a few minutes for each day's worth of changes.
 mv -f arctic_latest.osm.pbf arctic_old.osm.pbf
-osmupdate -b=$BBOX arctic_old.osm.pbf arctic_latest.osm.pbf
+echo -n "Updating OSM data... "
+osmupdate arctic_old.osm.pbf arctic_latest.osm.pbf -b=$BBOX
+echo "done."
 
 # Download, reproject, and clip the latest coastline file, but only if our
 # existing copy is older than $MAX_COASTLINE_AGE.
