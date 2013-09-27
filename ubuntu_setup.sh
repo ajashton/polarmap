@@ -1,3 +1,5 @@
+SRCDIR=$HOME/src
+
 distrib_supported=(raring)
 
 apt_sources=(
@@ -50,6 +52,8 @@ build_postgis() {
 
 # Do it
 install_packages
+mkdir -p $SRCDIR
+cd $SRCDIR
 build_osmconvert
 build_osmupdate
 build_postgis

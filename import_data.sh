@@ -7,6 +7,7 @@ BBOX="-180,60,180,90"  # latlon xmin,ymin,xmax,ymax
 BBOX_OGR=$(sed 's/,/ /g' <<< $BBOX)  # like $BBOX, but no commas
 MAX_COAST_AGE=$(bc <<< '24*60*60')
 
+mkdir -p $DATADIR
 cd $DATADIR
 
 # If we don't yet have an arctic extract to work with, download the latest
