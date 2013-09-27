@@ -7,6 +7,8 @@ BBOX="-180,60,180,90"  # latlon xmin,ymin,xmax,ymax
 BBOX_OGR=$(sed 's/,/ /g' <<< $BBOX)  # like $BBOX, but no commas
 MAX_COAST_AGE=$(bc <<< '24*60*60')
 
+cd $DATADIR
+
 # If we don't yet have an arctic extract to work with, download the latest
 # planet and create one with osmcovert.
 if [ ! -e arctic_latest.osm.pbf ]; then
