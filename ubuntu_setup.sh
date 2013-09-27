@@ -8,11 +8,13 @@ apt_sources=(
 apt_packages=(
     build-essential
     libbz2-dev          # for building osm2pgsql
-    libgeos++-dev       # for building osm2pgsql (postgis?)
+    libgeos++-dev       # for building osm2pgsql
     libmapnik
     libmapnik-dev
     libprotobuf-dev     # for building osm2pgsql, osmium
     postgresql
+    #postgresql-contrib
+    postgresql-server-dev-9.1
     zlib1g-dev          # for building osmconvert
 )
 
