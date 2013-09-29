@@ -1,11 +1,19 @@
 #!/bin/bash
 
+# This script loads a database with an up-to-date extract of OSM data for
+# the arctic. If an arctic extract file is not locally available, it will
+# download the latest weekly OSM Planet dump and create one.
+#
+# This file will also fetch and process any additional required data such as
+# coastline shapefiles. If these already exist locally but are out of date,
+# they will be updated.
+
 DATADIR=$HOME/osmdata
 
-EPSG=3395  # should be both a valid EPSG code and valid PostGIS SRID
-BBOX="-180,60,180,90"  # latlon xmin,ymin,xmax,ymax
-BBOX_OGR=$(sed 's/,/ /g' <<< $BBOX)  # like $BBOX, but no commas
-MAX_COAST_AGE=$(bc <<< '24*60*60')
+EPSG=3395   # should be both a valid EPSG code and valid PostGIS SRID
+BBOX="-180,60,180,90"                   # latlon xmin,ymin,xmax,ymax
+BBOX_OGR=$(sed 's/,/ /g' <<< $BBOX)     # like $BBOX, but no commas
+MAX_COAST_AGE=$(bc <<< '24*60*60')      # in seconds
 
 mkdir -p $DATADIR
 cd $DATADIR
@@ -33,11 +41,12 @@ echo "done."
 
 # Download, reproject, and clip the latest coastline file, but only if our
 # existing copy is older than $MAX_COASTLINE_AGE.
-if [ ! -e land-polygons-split-4326.zip -o
-        $(($(date +%s)-$(stat -c '%Y' "$coastzip"))) -gt $MAX_COAST_AGE ]
+coastzip=land-polygons-split-4326.zip
+if [ ! -e $coastzip -o \
+    $(($(date +%s)-$(stat -c '%Y' "$coastzip"))) -gt $MAX_COAST_AGE ]
 then
-    wget -N http://data.openstreetmapdata.com/land-polygons-split-4326.zip
-    unzip -f land-polygons-split-4326.zip
+    wget -N http://data.openstreetmapdata.com/$coastzip
+    unzip -f $coastzip
     ogr2ogr -t_srs EPSG:$EPSG -clipsrc $BBOX_OGR \
         arctic_land.shp land-polygons-split-4326/land_polygons.shp
 fi
