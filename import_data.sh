@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -eu -o pipefail
 
 # This script loads a database with an up-to-date extract of OSM data for
 # the arctic. If an arctic extract file is not locally available, it will
@@ -11,9 +12,9 @@
 DATADIR=$HOME/osmdata
 
 EPSG=3395   # should be both a valid EPSG code and valid PostGIS SRID
-BBOX="-180,60,180,90"                   # latlon xmin,ymin,xmax,ymax
-BBOX_OGR=$(sed 's/,/ /g' <<< $BBOX)     # like $BBOX, but no commas
-MAX_COAST_AGE=$(bc <<< '24*60*60')      # in seconds
+BBOX="-180,60,180,90"           # latlon xmin,ymin,xmax,ymax
+BBOX_OGR=${BBOX//,/ }           # like $BBOX, but no commas
+MAX_COAST_AGE=$((24*60*60))     # in seconds
 
 mkdir -p $DATADIR
 cd $DATADIR
