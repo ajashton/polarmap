@@ -1,11 +1,7 @@
+#!/usr/bin/env bash
+set -eu -o pipefail
+
 SRCDIR=$HOME/src
-
-distrib_supported=(raring)
-
-apt_sources=(
-    ppa:mapnik/nightly-trunk
-    ppa:duh/golang
-)
 
 apt_packages=(
     build-essential
@@ -14,19 +10,13 @@ apt_packages=(
     libmapnik
     libmapnik-dev
     libprotobuf-dev     # for building osm2pgsql, osmium
-    postgresql
-    #postgresql-contrib
-    postgresql-server-dev-9.1
+    postgresql-9.3-postgis-2.1
     zlib1g-dev          # for building osmconvert
 )
 
 install_packages() {
-    echo "Setting up apt sources..."
-    for source in "${apt_sources[@]}"; do
-        sudo apt-add-repository "$source"
-    done
     sudo apt-get update
-    sudo apt-get install ${apt_packages[@]}
+    sudo apt-get install -y ${apt_packages[@]}
 }
 
 
@@ -40,20 +30,9 @@ build_osmupdate() {
     sudo cp osmupdate /usr/local/bin/
 }
 
-build_postgis() {
-    local v=2.0.3
-    wget -O - http://download.osgeo.org/postgis/source/postgis-$v.tar.gz \
-        | tar xz
-    cd postgis-$v
-    ./configure
-    make
-    sudo make install
-}
-
 # Do it
 install_packages
 mkdir -p $SRCDIR
 cd $SRCDIR
 build_osmconvert
 build_osmupdate
-build_postgis
