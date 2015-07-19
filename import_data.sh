@@ -14,6 +14,7 @@ PSQL="psql -U $PG_USER -h $PG_HOST -p $PG_PORT"
 PSQLD="$PSQL -d $PG_DBNAME"
 
 pushd "$(pwd)"
+mkdir -p "$DATADIR"
 cd "$DATADIR"
 
 if [ ! -e planet.osm.pbf ]; then
