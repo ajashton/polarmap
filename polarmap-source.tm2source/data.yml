@@ -1,0 +1,181 @@
+_prefs: 
+  disabled: []
+  inspector: false
+  mapid: aj.caaa01d5
+  rev: s-57e98ad1
+  saveCenter: true
+attribution: ''
+center: 
+  - -14.502
+  - 1.8454
+  - 4
+description: ''
+Layer: 
+  - id: land
+    Datasource: 
+      dbname: polarmap
+      extent: -20037508.34,-20037508.34,20037508.34,20037508.34
+      geometry_field: ''
+      geometry_table: ''
+      host: localhost
+      key_field: ''
+      max_size: 512
+      password: ''
+      port: 5432
+      srid: ''
+      table: |-
+        ( SELECT geom
+          FROM ne_110m_land
+          WHERE z(!scale_denominator!) <= 2
+            AND geom && !bbox!
+          UNION ALL
+          SELECT geom
+          FROM ne_50m_land
+          WHERE z(!scale_denominator!) BETWEEN 3 AND 5
+            AND geom && !bbox!
+          UNION ALL
+          SELECT geom
+          FROM ne_10m_land
+          WHERE z(!scale_denominator!) >= 6
+            AND geom && !bbox!
+        ) AS data
+      type: postgis
+      user: postgres
+    description: ''
+    fields: {}
+    properties: 
+      "buffer-size": 8
+    srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
+  - id: urban
+    Datasource: 
+      dbname: polarmap
+      extent: -20037508.34,-20037508.34,20037508.34,20037508.34
+      geometry_field: ''
+      geometry_table: ''
+      host: localhost
+      key_field: ''
+      max_size: 512
+      password: ''
+      port: 5432
+      srid: ''
+      table: |-
+        ( SELECT geom
+          FROM ne_10m_urban_areas
+          WHERE geom && !bbox!
+        ) AS data
+      type: postgis
+      user: postgres
+    description: ''
+    fields: {}
+    properties: 
+      "buffer-size": 2
+    srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
+  - id: water_polygon
+    Datasource: 
+      dbname: polarmap
+      extent: -20037508.34,-20037508.34,20037508.34,20037508.34
+      geometry_field: ''
+      geometry_table: ''
+      host: localhost
+      key_field: ''
+      max_size: 512
+      password: ''
+      port: 5432
+      srid: ''
+      table: |-
+        ( SELECT way, way_area
+          FROM planet_osm_polygon
+          WHERE way && !bbox!
+            AND tags->'natural' = 'water'
+            AND way_area >= !pixel_width!
+        ) AS data
+      type: postgis
+      user: postgres
+    description: ''
+    fields: 
+      way_area: Number
+    properties: 
+      "buffer-size": 8
+    srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
+  - id: glacier
+    Datasource: 
+      dbname: polarmap
+      extent: -20037508.34,-20037508.34,20037508.34,20037508.34
+      geometry_field: ''
+      geometry_table: ''
+      host: localhost
+      key_field: ''
+      max_size: 512
+      password: ''
+      port: 5432
+      srid: ''
+      table: |-
+        ( SELECT geom
+          FROM ne_10m_glaciated_areas
+          WHERE geom && !bbox!
+        ) AS data
+      type: postgis
+      user: postgres
+    description: ''
+    fields: {}
+    properties: 
+      "buffer-size": 2
+    srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
+  - id: time_zones
+    Datasource: 
+      dbname: polarmap
+      extent: -20037508.34,-20037508.34,20037508.34,20037508.34
+      geometry_field: ''
+      geometry_table: ''
+      host: localhost
+      key_field: ''
+      max_size: 512
+      password: ''
+      port: 5432
+      srid: ''
+      table: |-
+        ( SELECT geom
+          FROM ne_10m_time_zones
+          WHERE geom && !bbox!
+        ) AS data
+      type: postgis
+      user: postgres
+    description: ''
+    fields: {}
+    properties: 
+      "buffer-size": 2
+    srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
+  - id: place_label
+    Datasource: 
+      dbname: polarmap
+      extent: -20037508.34,-20037508.34,20037508.34,20037508.34
+      geometry_field: ''
+      geometry_table: ''
+      host: localhost
+      key_field: ''
+      max_size: 512
+      password: ''
+      port: 5432
+      srid: ''
+      table: |-
+        ( SELECT
+            ST_Intersection(label_line, ST_Buffer(
+              geom, !pixel_width! * char_length(name) * 2)) AS geom,
+            name,
+            scalerank
+          FROM ne_10m_populated_places_simple
+          WHERE geom && !bbox!
+            AND scalerank <= z(!scale_denominator!)+2
+        ) AS data
+      type: postgis
+      user: postgres
+    description: ''
+    fields: 
+      name: String
+      scalerank: Number
+    properties: 
+      "buffer-size": 64
+    srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
+maxzoom: 8
+minzoom: 0
+name: Polar Map

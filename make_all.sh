@@ -1,17 +1,7 @@
 #!/usr/bin/env bash
 set -eu -o pipefail
 
-PBF_URL="${PBF_URL:-http://planet.openstreetmap.org/pbf/planet-latest.osm.pbf}"
-DATADIR=./data
-EPSG=3995   # should be both a valid EPSG code and valid PostGIS SRID
-BBOX="-180,45,180,90"           # latlon xmin,ymin,xmax,ymax
-BBOX_OGR=${BBOX//,/ }           # like $BBOX, but no commas
-PG_DBNAME=${PG_DBNAME:-openpolarmap}
-PG_USER=${PG_USER:-postgres}
-PG_HOST=${PG_HOST:-localhost}
-PG_PORT=${PG_PORT:-5432}
-PSQL="psql -U $PG_USER -h $PG_HOST -p $PG_PORT"
-PSQLD="$PSQL -d $PG_DBNAME"
+source "$(dirname $0)/settings.sh"
 
 pushd "$(pwd)"
 mkdir -p "$DATADIR"
@@ -46,7 +36,7 @@ fi
 if [ ! -e natural_earth_vector.sqlite ]; then
     nezip=natural_earth_vector.sqlite.zip
     wget -O "$nezip" "http://naciscdn.org/naturalearth/packages/$nezip"
-    unzip -ju $nezip natural_earth_vector.sqlite
+    unzip -ju $nezip -x CHANGELOG README.md VERSION
 fi
 
 if [ ! -e natural_earth_arctic.sqlite ]; then
@@ -60,6 +50,8 @@ if [ ! -e natural_earth_arctic.sqlite ]; then
             ne_10m_geography_regions_polys \
             ne_10m_glaciated_areas \
             ne_10m_land \
+            ne_50m_land \
+            ne_110m_land \
             ne_10m_ocean \
             ne_10m_populated_places_simple \
             ne_10m_ports \
@@ -95,3 +87,7 @@ osm2pgsql \
     --username="$PG_USER" \
     --hstore \
     arctic_latest.osm.pbf
+
+parallel "set -eu -o pipefail; \
+    printf '\\set procs $PROCS\n\\set proc {}\n' \
+    | cat - $DATADIR/pgsql/post-process.sql | $PSQLD" ::: $(seq 0 $((PROCS-1)))
