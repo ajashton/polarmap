@@ -59,6 +59,8 @@ if [ ! -e natural_earth_arctic.sqlite ]; then
             ne_10m_urban_areas
 fi
 
+popd
+
 ## IMPORT
 
 $PSQL -c "drop database $PG_DBNAME;" || true
@@ -88,6 +90,9 @@ osm2pgsql \
     --hstore \
     arctic_latest.osm.pbf
 
+$PSQLD -f ./pgsql/functions.sql
+$PSQLD -f ./pgsql/pre_process.sql
+
 parallel "set -eu -o pipefail; \
     printf '\\set procs $PROCS\n\\set proc {}\n' \
-    | cat - $DATADIR/pgsql/post-process.sql | $PSQLD" ::: $(seq 0 $((PROCS-1)))
+    | cat - ./pgsql/process.sql | $PSQLD" ::: $(seq 0 $((PROCS-1)))
