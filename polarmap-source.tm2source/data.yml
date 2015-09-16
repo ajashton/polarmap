@@ -2,13 +2,13 @@ _prefs:
   disabled: []
   inspector: false
   mapid: aj.caaa01d5
-  rev: s-57e98ad1
+  rev: s-c18b730b
   saveCenter: true
 attribution: ''
 center: 
-  - -14.502
-  - 1.8454
-  - 4
+  - -1.8896
+  - -2.2406
+  - 5
 description: ''
 Layer: 
   - id: land
@@ -145,6 +145,34 @@ Layer:
     properties: 
       "buffer-size": 2
     srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
+  - id: geographic_lines
+    Datasource: 
+      dbname: polarmap
+      extent: -20037508.34,-20037508.34,20037508.34,20037508.34
+      geometry_field: ''
+      geometry_table: ''
+      host: localhost
+      key_field: ''
+      max_size: 512
+      password: ''
+      port: 5432
+      srid: ''
+      table: |-
+        ( SELECT geom, name, name_long, abbrev, featurecla AS class
+          FROM ne_10m_geographic_lines
+          WHERE geom && !bbox!
+        ) AS data
+      type: postgis
+      user: postgres
+    description: ''
+    fields: 
+      abbrev: String
+      class: String
+      name: String
+      name_long: String
+    properties: 
+      "buffer-size": 2
+    srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
   - id: place_label
     Datasource: 
       dbname: polarmap
@@ -176,6 +204,59 @@ Layer:
     properties: 
       "buffer-size": 64
     srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
+  - id: grid
+    Datasource: 
+      dbname: polarmap
+      extent: -20037508.34,-20037508.34,20037508.34,20037508.34
+      geometry_field: ''
+      geometry_table: ''
+      host: localhost
+      key_field: ''
+      max_size: 512
+      password: ''
+      port: 5432
+      srid: ''
+      table: |-
+        ( SELECT geom, class, val
+          FROM grid
+          WHERE ST_Intersects(geom, !bbox!)
+            AND CASE
+              WHEN z(!scale_denominator!) >= 5 THEN TRUE
+              WHEN z(!scale_denominator!) = 4 AND val % 2 = 0 THEN TRUE
+              WHEN z(!scale_denominator!) = 3 AND val % 5 = 0 THEN TRUE
+              WHEN z(!scale_denominator!) = 2 AND val % 10 = 0 THEN TRUE
+              WHEN z(!scale_denominator!) = 1 AND val % 20 = 0 THEN TRUE
+              ELSE FALSE END
+        ) AS data
+      type: postgis
+      user: postgres
+    description: ''
+    fields: 
+      class: String
+      val: Number
+    properties: 
+      "buffer-size": 8
+    srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
+  - id: mask
+    Datasource: 
+      dbname: polarmap
+      extent: -20037508.34,-20037508.34,20037508.34,20037508.34
+      geometry_field: ''
+      geometry_table: ''
+      host: localhost
+      key_field: ''
+      max_size: 512
+      password: ''
+      port: 5432
+      srid: ''
+      table: mask
+      type: postgis
+      user: postgres
+    description: ''
+    fields: {}
+    properties: 
+      "buffer-size": 2
+    srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
 maxzoom: 8
 minzoom: 0
-name: Polar Map
+name: Polar Map Source

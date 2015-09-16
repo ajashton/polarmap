@@ -1,7 +1,7 @@
 PBF_URL="${PBF_URL:-http://planet.openstreetmap.org/pbf/planet-latest.osm.pbf}"
-DATA_DIR="${DATA_DIR:-/tmp/polarmap}"
+DATADIR="${DATA_DIR:-/tmp/polarmap}"
 EPSG=3995   # should be both a valid EPSG code and valid PostGIS SRID
-BBOX="-180,45,180,90"           # latlon xmin,ymin,xmax,ymax
+BBOX="-180,30,180,90"           # latlon xmin,ymin,xmax,ymax
 BBOX_OGR="${BBOX//,/ }"         # like $BBOX, but no commas
 
 PG_DBNAME="${PG_DBNAME:-polarmap}"

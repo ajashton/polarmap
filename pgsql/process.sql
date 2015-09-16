@@ -7,8 +7,6 @@
 -- most cases you can use them by adding a condition like this:
 -- [...] WHERE (gid % :procs) = :proc [...]
 
-update planet_osm_point
-set label_line = point_label_arc(name, way)
-where place = 'city'
---        and (osm_id % :procs) = :proc
-;
+update ne_10m_populated_places_simple
+set label_line = point_label_arc(name, geom)
+where (ogc_fid % :procs) = :proc;

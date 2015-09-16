@@ -24,13 +24,11 @@ then
     mv -f arctic_new.osm.pbf arctic_latest.osm.pbf
 fi
 
-if [ ! -e arctic_land.shp -o \
-    $(($(date +%s)-$(stat -c '%Y' arctic_land.shp))) -gt $((48*60*60)) ]
-then
+if [ ! -e arctic_land.shp ]; then
     wget -N http://data.openstreetmapdata.com/land-polygons-complete-4326.zip
     unzip -ju land-polygons-complete-4326.zip
     ogr2ogr -t_srs EPSG:$EPSG -clipsrc $BBOX_OGR \
-        arctic_land.shp land-polygons-split-4326/land_polygons.shp
+        arctic_land.shp land_polygons.shp
 fi
 
 if [ ! -e natural_earth_vector.sqlite ]; then
@@ -68,6 +66,33 @@ $PSQL -c "create database $PG_DBNAME;"
 $PSQLD -c "create extension if not exists postgis;"
 $PSQLD -c "create extension if not exists hstore;"
 
+# Generate Mask Layer
+$PSQLD -c "create table mask as (select ST_Buffer(ST_Difference(
+    ST_SetSRID(TileBBox(0, 0, 0), $EPSG),
+    ST_Transform(ST_Segmentize(ST_MakeEnvelope($BBOX, 4326), 0.25), $EPSG)),
+    -0.1) as geom);"
+
+# Generate grids
+$PSQLD -c "create table grid as (
+    select
+        ST_Transform(ST_Segmentize(ST_SetSRID(ST_MakeLine(
+            ST_MakePoint(-180, lat), ST_MakePoint(180, lat)),
+            4326), 0.25), $EPSG) as geom,
+        'lat'::text as class,
+        lat as val
+    from (select generate_series(89, 0, -1) as lat) as sub
+);"
+$PSQLD -c "insert into grid (
+    select
+        ST_Transform(ST_SetSRID(ST_MakeLine(
+            ST_MakePoint(lon, 90), ST_MakePoint(lon, 0)),
+            4326), $EPSG) as geom,
+        'lon' as class,
+        lon as val
+    from (select generate_series(-180, 179) as lon) as sub
+);"
+
+
 export PG_USE_COPY=TRUE
 export OGR_ENABLE_PARTIAL_REPROJECTION=TRUE
 export PGCLIENTENCODING=LATIN1
@@ -77,7 +102,7 @@ ogr2ogr \
     -segmentize 0.25 \
     -f PostgreSQL \
     "PG:user=$PG_USER dbname=$PG_DBNAME host=$PG_HOST port=$PG_PORT" \
-    natural_earth_arctic.sqlite \
+    "$DATADIR/natural_earth_arctic.sqlite" \
     -lco GEOMETRY_NAME=geom \
     -nlt GEOMETRY
 
@@ -88,8 +113,9 @@ osm2pgsql \
     --database="$PG_DBNAME" \
     --username="$PG_USER" \
     --hstore \
-    arctic_latest.osm.pbf
+    "$DATADIR/arctic_latest.osm.pbf"
 
+$PSQLD -f ./pgsql/postgis-vt-util.sql
 $PSQLD -f ./pgsql/functions.sql
 $PSQLD -f ./pgsql/pre_process.sql
 

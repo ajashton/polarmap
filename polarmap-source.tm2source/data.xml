@@ -3,12 +3,12 @@
 <Map srs="+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over">
 
 <Parameters>
-  <Parameter name="center">-14.502,1.8454,4</Parameter>
+  <Parameter name="center">-1.8896,-2.2406,5</Parameter>
   <Parameter name="format">pbf</Parameter>
-  <Parameter name="json"><![CDATA[{"vector_layers":[{"id":"land","description":"","fields":{}},{"id":"urban","description":"","fields":{}},{"id":"water_polygon","description":"","fields":{"way_area":"Number"}},{"id":"glacier","description":"","fields":{}},{"id":"time_zones","description":"","fields":{}},{"id":"place_label","description":"","fields":{"name":"String","scalerank":"Number"}}]}]]></Parameter>
+  <Parameter name="json"><![CDATA[{"vector_layers":[{"id":"land","description":"","fields":{}},{"id":"urban","description":"","fields":{}},{"id":"water_polygon","description":"","fields":{"way_area":"Number"}},{"id":"glacier","description":"","fields":{}},{"id":"time_zones","description":"","fields":{}},{"id":"geographic_lines","description":"","fields":{"name":"String","name_long":"String","abbrev":"String","class":"String"}},{"id":"place_label","description":"","fields":{"name":"String","scalerank":"Number"}},{"id":"grid","description":"","fields":{"class":"String","val":"Number"}},{"id":"mask","description":"","fields":{}}]}]]></Parameter>
   <Parameter name="maxzoom">8</Parameter>
   <Parameter name="minzoom">0</Parameter>
-  <Parameter name="name"><![CDATA[Polar Map]]></Parameter>
+  <Parameter name="name"><![CDATA[Polar Map Source]]></Parameter>
 </Parameters>
 
 
@@ -145,6 +145,30 @@
     </Datasource>
   </Layer>
 
+<Layer name="geographic_lines"
+  buffer-size="2"
+  srs="+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over">
+    
+    <Datasource>
+       <Parameter name="dbname"><![CDATA[polarmap]]></Parameter>
+       <Parameter name="extent"><![CDATA[-20037508.34,-20037508.34,20037508.34,20037508.34]]></Parameter>
+       <Parameter name="geometry_field"><![CDATA[]]></Parameter>
+       <Parameter name="geometry_table"><![CDATA[]]></Parameter>
+       <Parameter name="host"><![CDATA[localhost]]></Parameter>
+       <Parameter name="key_field"><![CDATA[]]></Parameter>
+       <Parameter name="max_size"><![CDATA[512]]></Parameter>
+       <Parameter name="password"><![CDATA[]]></Parameter>
+       <Parameter name="port"><![CDATA[5432]]></Parameter>
+       <Parameter name="srid"><![CDATA[]]></Parameter>
+       <Parameter name="table"><![CDATA[( SELECT geom, name, name_long, abbrev, featurecla AS class
+  FROM ne_10m_geographic_lines
+  WHERE geom && !bbox!
+) AS data]]></Parameter>
+       <Parameter name="type"><![CDATA[postgis]]></Parameter>
+       <Parameter name="user"><![CDATA[postgres]]></Parameter>
+    </Datasource>
+  </Layer>
+
 <Layer name="place_label"
   buffer-size="64"
   srs="+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over">
@@ -169,6 +193,58 @@
   WHERE geom && !bbox!
     AND scalerank <= z(!scale_denominator!)+2
 ) AS data]]></Parameter>
+       <Parameter name="type"><![CDATA[postgis]]></Parameter>
+       <Parameter name="user"><![CDATA[postgres]]></Parameter>
+    </Datasource>
+  </Layer>
+
+<Layer name="grid"
+  buffer-size="8"
+  srs="+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over">
+    
+    <Datasource>
+       <Parameter name="dbname"><![CDATA[polarmap]]></Parameter>
+       <Parameter name="extent"><![CDATA[-20037508.34,-20037508.34,20037508.34,20037508.34]]></Parameter>
+       <Parameter name="geometry_field"><![CDATA[]]></Parameter>
+       <Parameter name="geometry_table"><![CDATA[]]></Parameter>
+       <Parameter name="host"><![CDATA[localhost]]></Parameter>
+       <Parameter name="key_field"><![CDATA[]]></Parameter>
+       <Parameter name="max_size"><![CDATA[512]]></Parameter>
+       <Parameter name="password"><![CDATA[]]></Parameter>
+       <Parameter name="port"><![CDATA[5432]]></Parameter>
+       <Parameter name="srid"><![CDATA[]]></Parameter>
+       <Parameter name="table"><![CDATA[( SELECT geom, class, val
+  FROM grid
+  WHERE ST_Intersects(geom, !bbox!)
+    AND CASE
+      WHEN z(!scale_denominator!) >= 5 THEN TRUE
+      WHEN z(!scale_denominator!) = 4 AND val % 2 = 0 THEN TRUE
+      WHEN z(!scale_denominator!) = 3 AND val % 5 = 0 THEN TRUE
+      WHEN z(!scale_denominator!) = 2 AND val % 10 = 0 THEN TRUE
+      WHEN z(!scale_denominator!) = 1 AND val % 20 = 0 THEN TRUE
+      ELSE FALSE END
+) AS data]]></Parameter>
+       <Parameter name="type"><![CDATA[postgis]]></Parameter>
+       <Parameter name="user"><![CDATA[postgres]]></Parameter>
+    </Datasource>
+  </Layer>
+
+<Layer name="mask"
+  buffer-size="2"
+  srs="+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over">
+    
+    <Datasource>
+       <Parameter name="dbname"><![CDATA[polarmap]]></Parameter>
+       <Parameter name="extent"><![CDATA[-20037508.34,-20037508.34,20037508.34,20037508.34]]></Parameter>
+       <Parameter name="geometry_field"><![CDATA[]]></Parameter>
+       <Parameter name="geometry_table"><![CDATA[]]></Parameter>
+       <Parameter name="host"><![CDATA[localhost]]></Parameter>
+       <Parameter name="key_field"><![CDATA[]]></Parameter>
+       <Parameter name="max_size"><![CDATA[512]]></Parameter>
+       <Parameter name="password"><![CDATA[]]></Parameter>
+       <Parameter name="port"><![CDATA[5432]]></Parameter>
+       <Parameter name="srid"><![CDATA[]]></Parameter>
+       <Parameter name="table"><![CDATA[mask]]></Parameter>
        <Parameter name="type"><![CDATA[postgis]]></Parameter>
        <Parameter name="user"><![CDATA[postgres]]></Parameter>
     </Datasource>
