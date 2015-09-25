@@ -1,14 +1,18 @@
 _prefs: 
-  disabled: []
+  disabled: 
+    - place_label
+    - place_label_lines
+    - state_label
+    - country_label
   inspector: false
   mapid: aj.caaa01d5
-  rev: s-c18b730b
+  rev: s-8fa35ea5
   saveCenter: true
 attribution: ''
 center: 
-  - -1.8896
-  - -2.2406
-  - 5
+  - -1.3184
+  - -9.1021
+  - 4
 description: ''
 Layer: 
   - id: land
@@ -70,7 +74,7 @@ Layer:
     properties: 
       "buffer-size": 2
     srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
-  - id: water_polygon
+  - id: state_boundaries
     Datasource: 
       dbname: polarmap
       extent: -20037508.34,-20037508.34,20037508.34,20037508.34
@@ -83,21 +87,36 @@ Layer:
       port: 5432
       srid: ''
       table: |-
-        ( SELECT way, way_area
-          FROM planet_osm_polygon
-          WHERE way && !bbox!
-            AND tags->'natural' = 'water'
-            AND way_area >= !pixel_width!
+        ( SELECT
+            geom,
+            scalerank,
+            featurecla AS class,
+            name,
+            adm0_a3,
+            adm0_name,
+            name_l,
+            name_r,
+            sov_a3
+          FROM ne_10m_admin_1_states_provinces_lines_shp
+          WHERE geom && !bbox!
+            AND z(!scale_denominator!)+2 >= scalerank
         ) AS data
       type: postgis
       user: postgres
     description: ''
     fields: 
-      way_area: Number
+      adm0_a3: String
+      adm0_name: String
+      class: String
+      name: String
+      name_l: String
+      name_r: String
+      scalerank: Number
+      sov_a3: String
     properties: 
       "buffer-size": 8
     srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
-  - id: glacier
+  - id: country_boundaries
     Datasource: 
       dbname: polarmap
       extent: -20037508.34,-20037508.34,20037508.34,20037508.34
@@ -110,18 +129,35 @@ Layer:
       port: 5432
       srid: ''
       table: |-
-        ( SELECT geom
-          FROM ne_10m_glaciated_areas
+        ( SELECT
+            geom,
+            scalerank,
+            featurecla AS class,
+            name,
+            adm0_left,
+            adm0_right,
+            adm0_a3_l,
+            adm0_a3_r,
+            type
+          FROM ne_10m_admin_0_boundary_lines_land
           WHERE geom && !bbox!
         ) AS data
       type: postgis
       user: postgres
     description: ''
-    fields: {}
+    fields: 
+      adm0_a3_l: String
+      adm0_a3_r: String
+      adm0_left: String
+      adm0_right: String
+      class: String
+      name: String
+      scalerank: Number
+      type: String
     properties: 
-      "buffer-size": 2
+      "buffer-size": 8
     srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
-  - id: time_zones
+  - id: roads
     Datasource: 
       dbname: polarmap
       extent: -20037508.34,-20037508.34,20037508.34,20037508.34
@@ -134,16 +170,46 @@ Layer:
       port: 5432
       srid: ''
       table: |-
-        ( SELECT geom
-          FROM ne_10m_time_zones
+        ( SELECT * FROM ne_10m_roads
           WHERE geom && !bbox!
+            AND z(!scale_denominator!)+3 >= scalerank
         ) AS data
       type: postgis
       user: postgres
     description: ''
-    fields: {}
+    fields: 
+      add: Number
+      continent: String
+      edited: String
+      expressway: Number
+      featurecla: String
+      ignore: Number
+      label: String
+      label2: String
+      labelrank: Number
+      length_km: Number
+      level: String
+      local: String
+      localalt: String
+      localtype: String
+      name: String
+      namealt: String
+      namealtt: String
+      ne_part: String
+      note: String
+      ogc_fid: Number
+      orig_fid: Number
+      prefix: String
+      question: Number
+      routeraw: String
+      rwdb_rd_id: Number
+      scalerank: Number
+      sov_a3: String
+      toll: Number
+      type: String
+      uident: Number
     properties: 
-      "buffer-size": 2
+      "buffer-size": 8
     srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
   - id: geographic_lines
     Datasource: 
@@ -173,7 +239,104 @@ Layer:
     properties: 
       "buffer-size": 2
     srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
-  - id: place_label
+  - id: grid
+    Datasource: 
+      dbname: polarmap
+      extent: -20037508.34,-20037508.34,20037508.34,20037508.34
+      geometry_field: ''
+      geometry_table: ''
+      host: localhost
+      key_field: ''
+      max_size: 512
+      password: ''
+      port: 5432
+      srid: ''
+      table: |-
+        ( SELECT geom, class, val
+          FROM grid
+          WHERE ST_Intersects(geom, !bbox!)
+            AND class = 'lon'
+            AND z(!scale_denominator!) BETWEEN zmin AND zmax
+          UNION ALL
+          SELECT geom, class, val
+          FROM grid
+          WHERE ST_Intersects(geom, !bbox!)
+            AND class = 'lat'
+            AND CASE
+              WHEN z(!scale_denominator!) >= 5 THEN TRUE
+              WHEN z(!scale_denominator!) = 4 AND val % 2 = 0 THEN TRUE
+              WHEN z(!scale_denominator!) = 3 AND val % 5 = 0 THEN TRUE
+              WHEN z(!scale_denominator!) = 2 AND val % 10 = 0 THEN TRUE
+              WHEN z(!scale_denominator!) = 1 AND val % 20 = 0 THEN TRUE
+              ELSE FALSE END
+        ) AS data
+      type: postgis
+      user: postgres
+    description: ''
+    fields: 
+      class: String
+      val: Number
+    properties: 
+      "buffer-size": 8
+    srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
+  - id: country_label
+    Datasource: 
+      dbname: polarmap
+      extent: -20037508.34,-20037508.34,20037508.34,20037508.34
+      geometry_field: ''
+      geometry_table: ''
+      host: localhost
+      key_field: ''
+      max_size: 512
+      password: ''
+      port: 5432
+      srid: ''
+      table: |-
+        ( SELECT geom_pt AS geom, scalerank, name, abbrev
+          FROM ne_10m_admin_0_countries
+          WHERE z(!scale_denominator!)+2 >= scalerank
+          ORDER BY scalerank ASC, pop_est DESC
+        ) AS data
+      type: postgis
+      user: postgres
+    description: ''
+    fields: 
+      abbrev: String
+      name: String
+      scalerank: Number
+    properties: 
+      "buffer-size": 64
+    srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
+  - id: state_label
+    Datasource: 
+      dbname: polarmap
+      extent: -20037508.34,-20037508.34,20037508.34,20037508.34
+      geometry_field: ''
+      geometry_table: ''
+      host: localhost
+      key_field: ''
+      max_size: 512
+      password: ''
+      port: 5432
+      srid: ''
+      table: |-
+        ( SELECT geom_pt AS geom, scalerank, name, abbrev, iso_a2
+          FROM ne_10m_admin_1_states_provinces_shp
+          WHERE z(!scale_denominator!)+2 >= scalerank
+          ORDER BY scalerank ASC, area_sqkm DESC
+        ) AS data
+      type: postgis
+      user: postgres
+    description: ''
+    fields: 
+      abbrev: String
+      iso_a2: String
+      name: String
+      scalerank: Number
+    properties: 
+      "buffer-size": 64
+    srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
+  - id: place_label_lines
     Datasource: 
       dbname: polarmap
       extent: -20037508.34,-20037508.34,20037508.34,20037508.34
@@ -194,6 +357,7 @@ Layer:
           FROM ne_10m_populated_places_simple
           WHERE geom && !bbox!
             AND scalerank <= z(!scale_denominator!)+2
+          ORDER BY scalerank ASC, pop_max DESC NULLS LAST
         ) AS data
       type: postgis
       user: postgres
@@ -204,7 +368,7 @@ Layer:
     properties: 
       "buffer-size": 64
     srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
-  - id: grid
+  - id: place_label
     Datasource: 
       dbname: polarmap
       extent: -20037508.34,-20037508.34,20037508.34,20037508.34
@@ -217,25 +381,58 @@ Layer:
       port: 5432
       srid: ''
       table: |-
-        ( SELECT geom, class, val
-          FROM grid
-          WHERE ST_Intersects(geom, !bbox!)
-            AND CASE
-              WHEN z(!scale_denominator!) >= 5 THEN TRUE
-              WHEN z(!scale_denominator!) = 4 AND val % 2 = 0 THEN TRUE
-              WHEN z(!scale_denominator!) = 3 AND val % 5 = 0 THEN TRUE
-              WHEN z(!scale_denominator!) = 2 AND val % 10 = 0 THEN TRUE
-              WHEN z(!scale_denominator!) = 1 AND val % 20 = 0 THEN TRUE
-              ELSE FALSE END
+        ( SELECT
+            geom,
+            name,
+            scalerank
+          FROM ne_10m_populated_places_simple
+          WHERE geom && !bbox!
+            AND scalerank <= z(!scale_denominator!)+2
+          ORDER BY scalerank ASC, pop_max DESC NULLS LAST
         ) AS data
       type: postgis
       user: postgres
     description: ''
     fields: 
-      class: String
-      val: Number
+      name: String
+      scalerank: Number
     properties: 
-      "buffer-size": 8
+      "buffer-size": 64
+    srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
+  - id: airports
+    Datasource: 
+      dbname: polarmap
+      extent: -20037508.34,-20037508.34,20037508.34,20037508.34
+      geometry_field: ''
+      geometry_table: ''
+      host: localhost
+      key_field: ''
+      max_size: 512
+      password: ''
+      port: 5432
+      srid: ''
+      table: |-
+        ( SELECT * FROM ne_10m_airports
+          WHERE geom && !bbox!
+            AND z(!scale_denominator!) >= scalerank
+        ) AS data
+      type: postgis
+      user: postgres
+    description: ''
+    fields: 
+      abbrev: String
+      featurecla: String
+      gps_code: String
+      iata_code: String
+      location: String
+      name: String
+      natlscale: Number
+      ogc_fid: Number
+      scalerank: Number
+      type: String
+      wikipedia: String
+    properties: 
+      "buffer-size": 64
     srs: +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over
   - id: mask
     Datasource: 

@@ -7,6 +7,14 @@
 -- most cases you can use them by adding a condition like this:
 -- [...] WHERE (gid % :procs) = :proc [...]
 
+update ne_10m_admin_0_countries
+set geom_pt = ST_PointOnSurface(LargestPart(geom))
+where (ogc_fid % :procs) = :proc;
+
+update ne_10m_admin_1_states_provinces_shp
+set geom_pt = ST_PointOnSurface(LargestPart(geom))
+where (ogc_fid % :procs) = :proc;
+
 update ne_10m_populated_places_simple
 set label_line = point_label_arc(name, geom)
 where (ogc_fid % :procs) = :proc;

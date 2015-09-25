@@ -43,18 +43,28 @@ if [ ! -e natural_earth_arctic.sqlite ]; then
         -f SQLite \
         natural_earth_arctic.sqlite \
         natural_earth_vector.sqlite \
+            ne_10m_admin_0_boundary_lines_land \
+            ne_10m_admin_0_boundary_lines_maritime_indicator \
+            ne_10m_admin_0_countries \
+            ne_10m_admin_1_states_provinces_lines_shp \
+            ne_10m_admin_1_states_provinces_shp \
+            ne_10m_airports \
             ne_10m_geographic_lines \
             ne_10m_geography_marine_polys \
+            ne_10m_geography_regions_elevation_points \
             ne_10m_geography_regions_polys \
             ne_10m_glaciated_areas \
             ne_10m_land \
-            ne_50m_land \
-            ne_110m_land \
+            ne_10m_land_ocean_label_points \
             ne_10m_ocean \
+            ne_10m_parks_and_protected_lands_area \
             ne_10m_populated_places_simple \
             ne_10m_ports \
+            ne_10m_roads \
             ne_10m_time_zones \
-            ne_10m_urban_areas
+            ne_10m_urban_areas \
+            ne_50m_land \
+            ne_110m_land
 fi
 
 popd
@@ -65,6 +75,8 @@ $PSQL -c "drop database $PG_DBNAME;" || true
 $PSQL -c "create database $PG_DBNAME;"
 $PSQLD -c "create extension if not exists postgis;"
 $PSQLD -c "create extension if not exists hstore;"
+$PSQLD -f ./pgsql/postgis-vt-util.sql
+$PSQLD -f ./pgsql/functions.sql
 
 # Generate Mask Layer
 $PSQLD -c "create table mask as (select ST_Buffer(ST_Difference(
@@ -73,29 +85,12 @@ $PSQLD -c "create table mask as (select ST_Buffer(ST_Difference(
     -0.1) as geom);"
 
 # Generate grids
-$PSQLD -c "create table grid as (
-    select
-        ST_Transform(ST_Segmentize(ST_SetSRID(ST_MakeLine(
-            ST_MakePoint(-180, lat), ST_MakePoint(180, lat)),
-            4326), 0.25), $EPSG) as geom,
-        'lat'::text as class,
-        lat as val
-    from (select generate_series(89, 0, -1) as lat) as sub
-);"
-$PSQLD -c "insert into grid (
-    select
-        ST_Transform(ST_SetSRID(ST_MakeLine(
-            ST_MakePoint(lon, 90), ST_MakePoint(lon, 0)),
-            4326), $EPSG) as geom,
-        'lon' as class,
-        lon as val
-    from (select generate_series(-180, 179) as lon) as sub
-);"
+printf "\\set epsg $EPSG\n" | cat - pgsql/make_grids.sql | $PSQLD
 
 
 export PG_USE_COPY=TRUE
 export OGR_ENABLE_PARTIAL_REPROJECTION=TRUE
-export PGCLIENTENCODING=LATIN1
+export PGCLIENTENCODING=UTF8
 ogr2ogr \
     -s_srs EPSG:4326 \
     -t_srs EPSG:$EPSG \
@@ -108,6 +103,7 @@ ogr2ogr \
 
 export PGCLIENTENCODING=UTF8
 osm2pgsql \
+    --num-processes=$PROCS \
     --create \
     --proj=$EPSG \
     --database="$PG_DBNAME" \
@@ -115,10 +111,10 @@ osm2pgsql \
     --hstore \
     "$DATADIR/arctic_latest.osm.pbf"
 
-$PSQLD -f ./pgsql/postgis-vt-util.sql
-$PSQLD -f ./pgsql/functions.sql
-$PSQLD -f ./pgsql/pre_process.sql
 
+## PROCESS
+
+$PSQLD -f ./pgsql/pre_process.sql
 parallel "set -eu -o pipefail; \
     printf '\\set procs $PROCS\n\\set proc {}\n' \
     | cat - ./pgsql/process.sql | $PSQLD" ::: $(seq 0 $((PROCS-1)))
